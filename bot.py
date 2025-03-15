@@ -3,17 +3,19 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import os
+import asyncio
 
+# Configuración de logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 
-TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "TU_TOKEN_AQUI")
-
+TOKEN = "7729835760:AAEMX8o0arOLolFi3XN_qBYYgUv6j622ehE"  # Coloca aquí tu token de Telegram
 usuarios_suscritos = {}
 
 
+# Comando /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Comando para iniciar el bot y registrar el chat ID."""
     chat_id = update.effective_chat.id
@@ -27,9 +29,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logging.info(f"Nuevo usuario suscrito con chat_id: {chat_id}")
 
 
+# Mensajes programados
 async def buenos_dias(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Función que envía el mensaje de buenos días a todos los usuarios suscritos."""
-    for chat_id in usuarios_suscritos:
+    """Envía un mensaje de buenos días a todos los usuarios suscritos."""
+    for chat_id in usuarios_suscritos.keys():
         try:
             await context.bot.send_message(
                 chat_id=chat_id,
@@ -40,8 +43,9 @@ async def buenos_dias(context: ContextTypes.DEFAULT_TYPE) -> None:
             logging.error(f"Error al enviar mensaje a {chat_id}: {e}")
 
 
+# Comando /stop
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Comando para dejar de recibir mensajes."""
+    """Comando para cancelar la suscripción."""
     chat_id = update.effective_chat.id
     if chat_id in usuarios_suscritos:
         del usuarios_suscritos[chat_id]
@@ -51,26 +55,63 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("No estabas suscrito a los mensajes de buenos días.")
 
 
-def main() -> None:
-    """Función principal para iniciar el bot."""
+# Inicia el programador de tareas
+def start_scheduler(application: Application) -> None:
+    """Configura y arranca el programador."""
+    scheduler = AsyncIOScheduler()
+
+    # Registramos la tarea para enviar mensajes a las 8:00 AM
+    scheduler.add_job(
+        buenos_dias,
+        "cron",
+        hour=8,
+        minute=0,
+        args=[application.bot]
+    )
+
+    # Iniciamos el programador
+    scheduler.start()
+    logging.info("Scheduler iniciado correctamente.")
+
+
+# Configuración principal del bot
+async def main_async():
+    """Configura el bot y corre el programador asincrónicamente."""
+    # Crear la instancia del bot
     application = Application.builder().token(TOKEN).build()
 
+    # Registrar handlers para comandos
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("stop", stop))
 
-    scheduler = AsyncIOScheduler()
+    # Iniciar programador
+    start_scheduler(application)
 
-    scheduler.add_job(
-        buenos_dias,
-        'cron',
-        hour=8,
-        minute=0,
-        args=[application]
-    )
+    # Inicializamos la aplicación
+    await application.initialize()
 
-    scheduler.start()
+    # Iniciar el bot sin cerrar el bucle de eventos
+    logging.info("Iniciando el bot...")
+    await application.start()
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Mantener el bot corriendo
+    logging.info("Bot corriendo. Presiona Ctrl+C para detenerlo.")
+    await asyncio.Event().wait()
+
+
+# Función principal (manejo del bucle de eventos)
+def main():
+    """Punto de entrada principal del script."""
+    try:
+        # Obtener o crear el bucle de eventos
+        loop = asyncio.get_event_loop()
+
+        # Ejecutar la aplicación en el bucle de eventos
+        loop.run_until_complete(main_async())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot detenido manualmente.")
+    except RuntimeError as e:
+        logging.error(f"Error de tiempo de ejecución: {e}")
 
 
 if __name__ == "__main__":
