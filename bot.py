@@ -10,14 +10,26 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-TOKEN_TELEGRAM = '7729835760:AAEMX8o0arOLolFi3XN_qBYYgUv6j622ehE'
-CHAT_ID = '399515159'
+TOKEN_TELEGRAM = os.environ['TELEGRAM_TOKEN']
+CHAT_ID = os.environ['CHAT_ID']
 
+def get_schedule_time():
+    hour_str = os.environ.get('HOUR', '8')
+    minute_str = os.environ.get('MINUTE', '0')
+
+    try:
+        hour = int(hour_str)
+        minute = int(minute_str)
+        return datetime_time(hour, minute)
+    except ValueError:
+        logging.warning("Invalid format for schedule time. Using default values.")
+        return datetime_time(8, 0, 0)
+
+SCHEDULED_TIME = get_schedule_time()
 
 def is_time_to_send():
     now = datetime.now()
-    target_time = datetime_time(18, 25)
-    return now.hour == target_time.hour and now.minute == target_time.minute
+    return now.hour == SCHEDULED_TIME.hour and now.minute == SCHEDULED_TIME.minute
 
 
 async def check_and_send_message(context: ContextTypes.DEFAULT_TYPE) -> None:
