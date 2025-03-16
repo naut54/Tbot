@@ -15,7 +15,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'Hi {user.first_name}')
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('You can start using me with: \n /start - To start the bot\n /help - To get help')
+    await update.message.reply_text('You can start using me with: \n /start - To start the bot\n /help - To get help and more info')
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'You said: {update.message.text}')
