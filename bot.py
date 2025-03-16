@@ -33,7 +33,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 def schedule_tasks(app):
     job_queue = app.job_queue
-    job_queue.run_repeating(send_good_morning, time=time.strptime("18:00:00", "%H:%M:%S"))
+    job_queue.run_daily(send_good_morning, time=time.strptime("18:00:00", "%H:%M:%S"))
 
 def main() -> None:
     app = Application.builder().token(TOKEN_TELEGRAM).build()
