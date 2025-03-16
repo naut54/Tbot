@@ -27,13 +27,26 @@ def get_schedule_time():
 
 SCHEDULED_TIME = get_schedule_time()
 
+def get_time_diference(time1, time2):
+    return (time2.hour - time1.hour) * 60 + (time2.minute - time1.minute)
+
 def is_time_to_send():
-    now = datetime.now()
-    return now.hour == SCHEDULED_TIME.hour and now.minute == SCHEDULED_TIME.minute
+    now = datetime.now().time()
+
+    if now.hour == SCHEDULED_TIME.hour and now.minute == SCHEDULED_TIME.minute:
+        return True
+
+    if now > SCHEDULED_TIME:
+        diff_minutes = get_time_diference(SCHEDULED_TIME, now)
+        return diff_minutes < 10
+
+    return False
 
 
 async def check_and_send_message(context: ContextTypes.DEFAULT_TYPE) -> None:
     logging.info("Verificando si es hora de enviar el mensaje...")
+    now = datetime.now()
+
     if is_time_to_send():
         logging.info("Es hora de enviar el mensaje de buenos días!")
         try:
@@ -41,8 +54,17 @@ async def check_and_send_message(context: ContextTypes.DEFAULT_TYPE) -> None:
             logging.info("Mensaje enviado exitosamente!")
         except Exception as e:
             logging.error(f"Error al enviar el mensaje: {e}")
+    elif (now.time() > SCHEDULED_TIME and
+          get_time_diference(SCHEDULED_TIME, now.time()) < 10):
+        logging.info("Han pasado menos de 10 minutos desde la hora programada.")
+        try:
+            await context.bot.send_message(chat_id=CHAT_ID, text='¡Buenos días! 🌞')
+            logging.info("Mensaje enviado exitosamente!")
+        except Exception as e:
+            logging.error(f"Error al enviar el mensaje: {e}")
     else:
         logging.info("No es hora de enviar el mensaje aún.")
+
 
 
 async def force_send_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
